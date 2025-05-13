@@ -88,7 +88,7 @@ class Player(pygame.sprite.Sprite):
 
         self.count += 1
 
-        #pygame.draw.rect(display_surf, (255,0,0), self.player_rect, 2)
+        # pygame.draw.rect(display_surf, (255,0,0), self.player_rect, 2)
 
 class Fireball():
     def __init__(self):
@@ -116,7 +116,6 @@ class Fireball():
     def on_shoot(self):
         time = pygame.time.get_ticks()
         #Second half adds a delay to prevent too many fireballs being added at once. 
-        #ToDo: Add a power up to take away the delay.
         if keys[pygame.K_SPACE] and (time - self.lastFired >= self.cooldown):
             self.ammo_total.append(Fireball())
             self.lastFired = time
@@ -172,40 +171,92 @@ class BabyCow():
     def bcow_hit(self):
         pass
 
+#Change to another image(alien ship?)
 class BossCow():
     def __init__(self):
-        pass
+        self.BossC_x = 300
+        self.BossC_y = 50
+        self.BossC_vel = 1
+        self.count = 0
+
+        self.boss_cow_surf = pygame.image.load('./Assets/CowSpriteLeft1.png')
+        self.boss_cow = pygame.transform.scale_by(self.boss_cow_surf, 20)
+        self.boss_cow_dead_surf = pygame.image.load('./Assets/CowSpriteLeftDead.png')
+
+        self.boss_cow_rect = self.boss_cow.get_rect(topleft = (self.BossC_x,self.BossC_y))
+
     def draw(self):
-        pass
+        display_surf.blit(self.boss_cow, (self.BossC_x, self.BossC_y))
 
 class PowerUp():
     def __init__(self):
-        self.power_x = rand.randint(500, 3000)
+        self.power_x = rand.randint(2000, 5000)
         self.power_y = rand.randint(10, 380)
-        self.power_vel = 5
-    def draw(self):
-        pass
+        self.power_vel = 2
+        self.gas_can_surf = pygame.image.load('./Assets/medium_fuel_red.png')
+        self.gas_can = pygame.transform.scale_by(self.gas_can_surf, .1)
+        self.gas_rect = self.gas_can.get_rect(topleft = (self.power_x, self.power_y))
+        self.active = False
 
+    def draw(self):
+        display_surf.blit(self.gas_can, (self.power_x, self.power_y))
+
+        # pygame.draw.rect(display_surf, (255,0,0), self.gas_rect, 2)
+
+    def move(self):
+        time = pygame.time.get_ticks()
+
+        if time % 2 == 0:
+            self.power_x -= self.power_vel
+            self.gas_rect.topleft = (self.power_x, self.power_y)
+
+    def player_collide(self):
+        if player.player_rect.colliderect(self.gas_rect):
+            fireball.cooldown = 0
+            self.active = True
+            power_up_timer.activate()
+            self.gas_can.fill((0,0,0,0))
+
+
+class Timer():
+    def __init__(self, duration):
+        self.duration = duration
+        self.start_time = 0
+        self.active = False
+
+    def activate(self):
+        self.active = True
+        self.start_time = pygame.time.get_ticks()
+
+    def deactivate(self):
+        self.active = False
+        self.start_time = 0
+
+    def update(self):
+      if self.active:
+          current_time = pygame.time.get_ticks()
+          if current_time - self.start_time >= self.duration:
+              self.deactivate()
 
 
 player = Player()
+boss_cow = BossCow()
 fireball = Fireball()
 score = Scoreboard()
-num_coins = 100
-num_cows = 50
+power_up = PowerUp()
+power_up_timer = Timer(10000)
+
+
+coin_timer = pygame.event.custom_type()
+pygame.time.set_timer(coin_timer, 300)
+
+cow_timer = pygame.event.custom_type()
+pygame.time.set_timer(cow_timer, 500)
+
+
 cows = []
 coins = []
 
-for i in range(num_coins):
-    x = rand.randint(630, 3000)
-    y = rand.randint(0, 390)
-    coins.append(Coin(x,y))
-
-
-for i in range(num_cows):
-    x = rand.randint(630, 3000)
-    y = rand.randint(10, 380)
-    cows.append(BabyCow(x,y))
     
 
 while (running):
@@ -217,10 +268,32 @@ while (running):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
+        if event.type == coin_timer:
+            x = rand.randint(630, 3000)
+            y = rand.randint(0, 390)
+            coins.append(Coin(x,y))
+        
+        if event.type == cow_timer:
+            x = rand.randint(630, 3000)
+            y = rand.randint(10, 380)
+            cows.append(BabyCow(x,y))
     
     player.draw()
     player.on_movement()
 
+    power_up.draw()
+    power_up.move()
+    
+    power_up.player_collide()
+
+    if power_up.active:
+        power_up_timer.update()
+
+        if not power_up_timer.active:
+            fireball.cooldown = 500
+            power_up.active = False
+    
 
     fireball.on_shoot()
 
@@ -239,6 +312,8 @@ while (running):
             score.total += 5
             cows.pop(i)
 
+    if score.total >= 1000:
+        boss_cow.draw()
 
     pygame.display.flip()
     clock.tick(60)
