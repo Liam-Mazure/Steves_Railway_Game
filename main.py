@@ -19,7 +19,7 @@ class Coin(pygame.sprite.Sprite):
         super().__init__()
         self.coin_x = x
         self.coin_y = y
-        self.coin_vel = .5
+        self.coin_vel = 50
         self.total_coin = 100
         self.coin_list = []
         self.count = 0
@@ -37,20 +37,19 @@ class Coin(pygame.sprite.Sprite):
 
         #pygame.draw.rect(display_surf, (255,0,0), self.coin_rect, 2)
 
-    def coin_motion(self):
-        time = pygame.time.get_ticks()
+    def coin_motion(self, delta_time):
+        movement = self.coin_vel * delta_time
         
-        if time % 2 == 0:
-            self.coin_x -= self.coin_vel
-            self.coin_rect.topleft = (self.coin_x, self.coin_y)
+        self.coin_x -= movement
+        self.coin_rect.topleft = (self.coin_x, self.coin_y)
             
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.player_x = 220
+        self.player_x = 40
         self.player_y = 200
-        self.player_vel = 5
+        self.player_vel = 300
         
         self.count = 0
 
@@ -61,19 +60,20 @@ class Player(pygame.sprite.Sprite):
         self.player_rect = self._trainEng_surf.get_rect(topleft = (self.player_x, self.player_y))
         
 
-    def on_movement(self):
+    def on_movement(self, delta_time):
+        movement = self.player_vel * delta_time
 
         if keys[pygame.K_UP] and self.player_y >= -25:
-            self.player_y -= self.player_vel
+            self.player_y -= movement
             self.player_rect.topleft = (self.player_x, self.player_y)
         if keys[pygame.K_DOWN] and self.player_y <= 350:
-            self.player_y += self.player_vel
+            self.player_y += movement
             self.player_rect.topleft = (self.player_x, self.player_y)
         if keys[pygame.K_LEFT] and self.player_x >= -150:
-            self.player_x -= self.player_vel
+            self.player_x -= movement
             self.player_rect.topleft = (self.player_x, self.player_y)
         if keys[pygame.K_RIGHT] and self.player_x <= 700:
-            self.player_x += self.player_vel
+            self.player_x += movement
             self.player_rect.topleft = (self.player_x, self.player_y)
 
     def draw(self):
@@ -95,7 +95,7 @@ class Fireball():
         self.ammo_total = []
         self.ammo_x = player.player_rect.x + 200
         self.ammo_y = player.player_rect.y + 10
-        self.ammo_vel = 10
+        self.ammo_vel = 250
         self.count = 0
         self.cooldown = 500
         self.lastFired = 0
@@ -104,7 +104,7 @@ class Fireball():
         self.fire_rect = self._fireBall[0].get_rect(topleft = (self.ammo_x,self.ammo_y) )
     
     def draw(self):
-        if self.count + 1 >= 24:
+        if self.count + 1 >= 30:
             self.count = 0
         
         display_surf.blit(self._fireBall[self.count//6], (self.ammo_x, self.ammo_y))
@@ -113,8 +113,9 @@ class Fireball():
 
         #pygame.draw.rect(display_surf, (255,0,0), self.fire_rect, 2)
          
-    def on_shoot(self):
+    def on_shoot(self, delta_time):
         time = pygame.time.get_ticks()
+        movement = self.ammo_vel * delta_time
         #Second half adds a delay to prevent too many fireballs being added at once. 
         if keys[pygame.K_SPACE] and (time - self.lastFired >= self.cooldown):
             self.ammo_total.append(Fireball())
@@ -123,9 +124,9 @@ class Fireball():
             if fireball.ammo_x < 700:
                 self.ammo_total[ammo].draw()
         
-                if time % 2 == 0:
-                    self.ammo_total[ammo].ammo_x += self.ammo_total[ammo].ammo_vel
-                    self.fire_rect.topleft = (self.ammo_total[ammo].ammo_x  , self.ammo_total[ammo].ammo_y)
+                # if time % 2 == 0:
+                self.ammo_total[ammo].ammo_x += movement
+                self.fire_rect.topleft = (self.ammo_total[ammo].ammo_x  , self.ammo_total[ammo].ammo_y)
             else:
                 fireball.ammo_x = self.ammo_x
                 fireball.ammo_y = self.ammo_y
@@ -145,7 +146,7 @@ class BabyCow():
     def __init__(self, x, y):
         self.BC_x = x
         self.BC_y = y
-        self.BC_vel = 1
+        self.BC_vel = 75
         self.count = 0
 
         self.baby_cow_surf = [pygame.image.load('./Assets/CowSpriteLeft1.png'),pygame.image.load('./Assets/CowSpriteLeft2.png'), pygame.image.load('./Assets/CowSpriteLeft3.png')]
@@ -161,32 +162,104 @@ class BabyCow():
 
         #pygame.draw.rect(display_surf, (255,0,0), self.baby_cow_rect, 2)
     
-    def cow_motion(self):
-        time = pygame.time.get_ticks()
+    def cow_motion(self, delta_time):
+        movement = self.BC_vel * delta_time
 
-        if time % 2 == 0:
-            self.BC_x -= self.BC_vel
-            self.baby_cow_rect.topleft = (self.BC_x, self.BC_y)
 
-    def bcow_hit(self):
-        pass
+        self.BC_x -= movement
+        self.baby_cow_rect.topleft = (self.BC_x, self.BC_y)
 
-#Change to another image(alien ship?)
-class BossCow():
+
+class BossAlien():
     def __init__(self):
-        self.BossC_x = 300
-        self.BossC_y = 50
-        self.BossC_vel = 1
+        self.BossA_x = 470
+        self.BossA_y = 70
+        self.BossA_vel = 100
+        
         self.count = 0
 
-        self.boss_cow_surf = pygame.image.load('./Assets/CowSpriteLeft1.png')
-        self.boss_cow = pygame.transform.scale_by(self.boss_cow_surf, 20)
-        self.boss_cow_dead_surf = pygame.image.load('./Assets/CowSpriteLeftDead.png')
+        self.movingDown = True
 
-        self.boss_cow_rect = self.boss_cow.get_rect(topleft = (self.BossC_x,self.BossC_y))
+        self.boss_alien_surf = pygame.image.load('./Assets/greenUFO.png')
+        self.boss_alien = pygame.transform.scale_by(self.boss_alien_surf, .3)
+
+        self.boss_alien_rect = self.boss_alien.get_rect(topleft = (self.BossA_x,self.BossA_y))
+
 
     def draw(self):
-        display_surf.blit(self.boss_cow, (self.BossC_x, self.BossC_y))
+        #Draw Ship
+        display_surf.blit(self.boss_alien, (self.BossA_x, self.BossA_y))
+        pygame.draw.rect(display_surf, (255,0,0), self.boss_alien_rect, 2)
+
+    
+    def moveShip(self, delta_time):
+        movement = self.BossA_vel * delta_time
+
+        if(self.movingDown):
+            self.BossA_y += movement
+            if(self.BossA_y >= 350):
+                self.movingDown = False
+        else:
+            self.BossA_y -= movement
+            if(self.BossA_y <=-50):
+                self.movingDown = True
+        self.boss_alien_rect.topleft = (self.BossA_x, self.BossA_y)
+            
+
+class BossFireBall():
+    def __init__(self):
+        self.shootX = boss_alien.BossA_x - 50
+        self.shootY = boss_alien.BossA_y
+        self.shoot_vel = 150
+        self.shoot = False
+        self.count = 0
+
+        self.alien_fireball_surf = [pygame.image.load('./Assets/FireBeam_01.png'),pygame.image.load('./Assets/FireBeam_02.png'),pygame.image.load('./Assets/FireBeam_03.png')]
+        self.alien_fireball_rect = self.alien_fireball_surf[0].get_rect(topleft = (self.shootX, self.shootY))
+
+    def draw(self):
+        #Draw ships fireballs
+        if(self.shoot):
+            if self.count + 1 >= 18:
+                self.count = 0
+        
+            display_surf.blit(self.alien_fireball_surf[self.count//6], (self.shootX, self.shootY))
+
+            self.count += 1
+
+            pygame.draw.rect(display_surf, (255,0,0), self.alien_fireball_rect, 2)
+
+    def shootFireball(self, detla_time):
+        self.shoot = True
+
+        movement = self.shoot_vel * delta_time
+
+        self.shootX -= movement
+        self.alien_fireball_rect.topleft = (self.shootX, self.shootY)
+
+    def player_collied(self):
+        pass
+
+#Need to shoot laser on timer after boss is beyond half health
+class BossLaser():
+    def __init__(self):
+        self.laserX = boss_alien.BossA_x
+        self.laserY = boss_alien.BossA_y
+        self.alien_laser_surf = [pygame.image.load('./Assets/LaserShot_01.png'),pygame.image.load('./Assets/LaserShot_02.png'),pygame.image.load('./Assets/LaserShot_03.png'),pygame.image.load('./Assets/LaserShot_04.png'),pygame.image.load('./Assets/LaserShot_05.png'),pygame.image.load('./Assets/LaserShot_06.png'),pygame.image.load('./Assets/LaserShot_07.png')]
+        self.alien_laser_rect = self.alien_laser_surf[0].get_rect(topleft = (self.laserX, self.laserY))
+        self.count = 0
+
+    def draw(self):
+        if self.count + 1 >= 49:
+            self.count = 0
+            
+        display_surf.blit(self.alien_laser_surf[self.count % 6], (self.laserX,self.laserY))
+        count += 1
+
+        pygame.draw.rect(display_surf, (255,0,0), self.alien_laser_rect, 2)
+
+    def shoot_laser(self):
+        pass
 
 class PowerUp():
     def __init__(self):
@@ -203,12 +276,11 @@ class PowerUp():
 
         # pygame.draw.rect(display_surf, (255,0,0), self.gas_rect, 2)
 
-    def move(self):
-        time = pygame.time.get_ticks()
+    def move(self, delta_time):
+        movement = self.power_vel * delta_time
 
-        if time % 2 == 0:
-            self.power_x -= self.power_vel
-            self.gas_rect.topleft = (self.power_x, self.power_y)
+        self.power_x -= movement
+        self.gas_rect.topleft = (self.power_x, self.power_y)
 
     def player_collide(self):
         if player.player_rect.colliderect(self.gas_rect):
@@ -240,7 +312,8 @@ class Timer():
 
 
 player = Player()
-boss_cow = BossCow()
+boss_alien = BossAlien()
+boss_fireball = BossFireBall()
 fireball = Fireball()
 score = Scoreboard()
 power_up = PowerUp()
@@ -253,13 +326,20 @@ pygame.time.set_timer(coin_timer, 300)
 cow_timer = pygame.event.custom_type()
 pygame.time.set_timer(cow_timer, 500)
 
+bossFireBall_timer = pygame.event.custom_type()
+pygame.time.set_timer(bossFireBall_timer, 3000)
+
 
 cows = []
 coins = []
+bFireBall = []
 
     
 
 while (running):
+    boss_total = 5
+    clock = pygame.time.Clock()
+    delta_time = clock.tick(60) / 1000.0
     display_surf.blit(finalBackground_surf, (0,0))
     score.render()
     keys = pygame.key.get_pressed()
@@ -278,12 +358,15 @@ while (running):
             x = rand.randint(630, 3000)
             y = rand.randint(10, 380)
             cows.append(BabyCow(x,y))
+
+        if event.type == bossFireBall_timer:
+            bFireBall.append(BossFireBall())
     
     player.draw()
-    player.on_movement()
+    player.on_movement(delta_time)
 
     power_up.draw()
-    power_up.move()
+    power_up.move(delta_time)
     
     power_up.player_collide()
 
@@ -295,26 +378,35 @@ while (running):
             power_up.active = False
     
 
-    fireball.on_shoot()
+    fireball.on_shoot(delta_time)
 
-    for i in range(len(coins) - 1, -1, -1):
-        coins[i].draw()
-        coins[i].coin_motion()
-        if player.player_rect.colliderect(coins[i].coin_rect):
-            score.total += 1
-            coins.pop(i)
-    
-    for i in range(len(cows) - 1, -1, -1):
-        cows[i].draw()
-        cows[i].cow_motion()
-        if fireball.fire_rect.colliderect(cows[i].baby_cow_rect):
+    if score.total < boss_total:
+        for i in range(len(coins) - 1, -1, -1):
+            coins[i].draw()
+            coins[i].coin_motion(delta_time)
+            if player.player_rect.colliderect(coins[i].coin_rect):
+                score.total += 1
+                coins.pop(i)
 
-            score.total += 5
-            cows.pop(i)
+        for i in range(len(cows) - 1, -1, -1):
+            cows[i].draw()
+            cows[i].cow_motion(delta_time)
+            if fireball.fire_rect.colliderect(cows[i].baby_cow_rect):
 
-    if score.total >= 1000:
-        boss_cow.draw()
+                score.total += 5
+                cows.pop(i)
+
+    if score.total >= boss_total:
+        boss_alien.draw()
+        boss_alien.moveShip(delta_time)
+
+        for i in range(len(bFireBall) - 1, -1, -1):
+            bFireBall[i].draw()
+            bFireBall[i].shootFireball(delta_time)
+            if player.player_rect.colliderect(bFireBall[i].alien_fireball_rect):
+                #Change to player life rather than coins. Boss with disapear if you loose too many points.
+                score.total -= 1
+                bFireBall.pop(i)
 
     pygame.display.flip()
-    clock.tick(60)
 pygame.quit()
