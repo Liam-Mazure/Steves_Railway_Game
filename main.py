@@ -1,18 +1,36 @@
 import pygame
 import random as rand
+import sys
 
 
 pygame.init()
-running = True
 player_fire = False
 size = weight,height = 640,400
+window_caption = pygame.display.set_caption("Steve's Railway")
 display_surf = pygame.display.set_mode(size, pygame.HWSURFACE)
-clock = pygame.time.Clock()
 
-
+titleBG_surf = pygame.image.load("./Assets/StevesRailwayTitleScreen.png").convert()
+endBG_surf = pygame.image.load("./Assets/StevesRailwayGOScreen.png").convert()
 background_surf = pygame.image.load("./Assets/pixle_landscape.png").convert()
 finalBackground_surf = pygame.transform.scale_by(background_surf, 1.25)
 
+
+def title_screen():
+    title_running = True
+    title_font = pygame.font.SysFont('Times New Roman', 60, bold=True)
+    
+    while(title_running):
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                title_running = False
+            display_surf.blit(titleBG_surf, (0, 0))
+            text = title_font.render("Press any to start", True, ('#0a1a58'))
+            display_surf.blit(text, (100, 250))
+        pygame.display.update()
 
 class Coin(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -124,7 +142,6 @@ class Fireball():
             if fireball.ammo_x < 700:
                 self.ammo_total[ammo].draw()
         
-                # if time % 2 == 0:
                 self.ammo_total[ammo].ammo_x += movement
                 self.fire_rect.topleft = (self.ammo_total[ammo].ammo_x  , self.ammo_total[ammo].ammo_y)
             else:
@@ -133,14 +150,53 @@ class Fireball():
 
 class Scoreboard():
     def __init__(self):
-        self.total = 0
-        self.score_font = pygame.font.Font(None, 36)
+        self.score_total = 0
+        self.score_font = pygame.font.SysFont('Times New Roman', 20, bold=True)
         self.score_text = None
+
+        self.enemy_alive = False
+        self.boss_dead = False
+        self.enemy_health_text = None
+        self.enemy_health_bar_rect = None
+        self.enemy_health = 100
+
+        self.player_health_text = None
+        self.player_health_bar_rect = None
+        self.player_health = 100
+
     def render(self):
-        self.score_text = self.score_font.render("Total Score: " + str(self.total), True, (0,0,0))
+        self.score_text = self.score_font.render("Total Score: " + str(self.score_total), True, (243,140,5))
         display_surf.blit(self.score_text, (10,10))
+
+        if self.enemy_alive:
+            self.enemy_health_text = self.score_font.render("Enemy Health:", True, (243,140,5))
+            display_surf.blit(self.enemy_health_text, (400, 10))
+            self.enemy_health_bar_rect = pygame.draw.rect(display_surf, (200,0,0),(535,15,self.enemy_health,15))
+
+        self.player_health_text = self.score_font.render("Health:", True, (243,140,5))
+        display_surf.blit(self.player_health_text, (10, 30))
+        self.player_health_bar_rect = pygame.draw.rect(display_surf, (0,200,0),(80,35,self.player_health,15))
+
     def add_score(self):
-        self.total += 1
+        self.score_total += 1
+
+    def player_lose_health(self):
+        if self.player_health > 0:
+            self.player_health -= 25
+            self.player_health_bar_rect = pygame.draw.rect(display_surf,(0,200,0),(80,35,self.player_health,15))
+        else:
+            global gameover 
+            gameover = True
+
+    def enemy_lose_health(self):
+        if self.enemy_health > 0:
+            self.enemy_health -= 5
+            self.enemy_health_bar_rect = pygame.draw.rect(display_surf,(200,0,0),(535,15,self.enemy_health,15))
+        else:
+            self.enemy_alive = False
+            self.boss_dead = True
+            self.score_total += 500
+
 
 class BabyCow():
     def __init__(self, x, y):
@@ -175,6 +231,7 @@ class BossAlien():
         self.BossA_x = 470
         self.BossA_y = 70
         self.BossA_vel = 100
+        self.health = 100
         
         self.count = 0
 
@@ -189,7 +246,7 @@ class BossAlien():
     def draw(self):
         #Draw Ship
         display_surf.blit(self.boss_alien, (self.BossA_x, self.BossA_y))
-        pygame.draw.rect(display_surf, (255,0,0), self.boss_alien_rect, 2)
+        #pygame.draw.rect(display_surf, (255,0,0), self.boss_alien_rect, 2)
 
     
     def moveShip(self, delta_time):
@@ -227,7 +284,7 @@ class BossFireBall():
 
             self.count += 1
 
-            pygame.draw.rect(display_surf, (255,0,0), self.alien_fireball_rect, 2)
+            #pygame.draw.rect(display_surf, (255,0,0), self.alien_fireball_rect, 2)
 
     def shootFireball(self, detla_time):
         self.shoot = True
@@ -309,35 +366,66 @@ class Timer():
           current_time = pygame.time.get_ticks()
           if current_time - self.start_time >= self.duration:
               self.deactivate()
-
-
-player = Player()
-boss_alien = BossAlien()
-boss_fireball = BossFireBall()
-fireball = Fireball()
-score = Scoreboard()
-power_up = PowerUp()
-power_up_timer = Timer(10000)
-
-
-coin_timer = pygame.event.custom_type()
-pygame.time.set_timer(coin_timer, 300)
-
-cow_timer = pygame.event.custom_type()
-pygame.time.set_timer(cow_timer, 500)
-
-bossFireBall_timer = pygame.event.custom_type()
-pygame.time.set_timer(bossFireBall_timer, 3000)
-
-
-cows = []
-coins = []
-bFireBall = []
-
+ 
+def end_screen():
+    gameOver_running = True
+    gameOver_font = pygame.font.SysFont('Times New Roman', 30, bold=True)
     
+    while(gameOver_running):
+        display_surf.blit(titleBG_surf, (0, 0))
+        text = gameOver_font.render("Press r to play again or q to quit", True, ('#0a1a58'))
+        display_surf.blit(text, (125, 250))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    pygame.event.clear()
+                    title_screen()
+                    start_game()
+                    return
+                elif event.key == pygame.K_q:
+                    pygame.quit()
+                    sys.exit()
+    
+        pygame.display.update()
 
+def start_game():
+    global player, boss_alien, boss_fireball, fireball, score, power_up, power_up_timer,coin_timer,cow_timer, bossFireBall_timer
+    global coins, cows, bFireBall, keys, gameover, running
+
+    player = Player()
+    boss_alien = BossAlien()
+    boss_fireball = BossFireBall()
+    fireball = Fireball()
+    score = Scoreboard()
+    power_up = PowerUp()
+    power_up_timer = Timer(10000)
+
+
+    coin_timer = pygame.event.custom_type()
+    pygame.time.set_timer(coin_timer, 300)
+
+    cow_timer = pygame.event.custom_type()
+    pygame.time.set_timer(cow_timer, 1000)
+
+    bossFireBall_timer = pygame.event.custom_type()
+    pygame.time.set_timer(bossFireBall_timer, 3000)
+
+
+    cows = []
+    coins = []
+    bFireBall = []
+
+title_screen()
+start_game() 
+
+running = True
 while (running):
-    boss_total = 5
+    
+    gameover = False
+    boss_total = 10
     clock = pygame.time.Clock()
     delta_time = clock.tick(60) / 1000.0
     display_surf.blit(finalBackground_surf, (0,0))
@@ -380,12 +468,12 @@ while (running):
 
     fireball.on_shoot(delta_time)
 
-    if score.total < boss_total:
+    if not score.enemy_alive:
         for i in range(len(coins) - 1, -1, -1):
             coins[i].draw()
             coins[i].coin_motion(delta_time)
             if player.player_rect.colliderect(coins[i].coin_rect):
-                score.total += 1
+                score.score_total += 1
                 coins.pop(i)
 
         for i in range(len(cows) - 1, -1, -1):
@@ -393,10 +481,13 @@ while (running):
             cows[i].cow_motion(delta_time)
             if fireball.fire_rect.colliderect(cows[i].baby_cow_rect):
 
-                score.total += 5
+                score.score_total += 5
                 cows.pop(i)
 
-    if score.total >= boss_total:
+        if score.score_total >= boss_total and not score.boss_dead:
+            score.enemy_alive = True
+
+    if score.enemy_alive:
         boss_alien.draw()
         boss_alien.moveShip(delta_time)
 
@@ -404,9 +495,21 @@ while (running):
             bFireBall[i].draw()
             bFireBall[i].shootFireball(delta_time)
             if player.player_rect.colliderect(bFireBall[i].alien_fireball_rect):
-                #Change to player life rather than coins. Boss with disapear if you loose too many points.
-                score.total -= 1
+                score.player_lose_health()
                 bFireBall.pop(i)
+        
+        for i in range(len(fireball.ammo_total) - 1, -1, -1):
+            if fireball.fire_rect.colliderect(boss_alien.boss_alien_rect):
+                fireball.ammo_total.pop(i)
+                score.enemy_lose_health()
+
+        
+    
+    if(gameover):
+        display_surf.blit(endBG_surf,(0,0))
+       
+        end_screen()
 
     pygame.display.flip()
+
 pygame.quit()
