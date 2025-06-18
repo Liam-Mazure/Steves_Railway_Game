@@ -8,6 +8,7 @@ player_fire = False
 size = weight,height = 640,400
 window_caption = pygame.display.set_caption("Steve's Railway")
 display_surf = pygame.display.set_mode(size, pygame.HWSURFACE)
+transparent_surf = pygame.Surface(size,pygame.SRCALPHA)
 
 titleBG_surf = pygame.image.load("./Assets/StevesRailwayTitleScreen.png").convert()
 endBG_surf = pygame.image.load("./Assets/StevesRailwayGOScreen.png").convert()
@@ -179,7 +180,9 @@ class Scoreboard():
         self.player_health_text = self.score_font.render("Health:", True, (243,140,5))
         display_surf.blit(self.player_health_text, (10, 30))
         self.player_health_bar_rect = pygame.draw.rect(display_surf, (0,200,0),(80,35,self.player_health,15))
-        self.leftWindowScore_onPass_rect = pygame.draw.rect(display_surf,(255,0,0),(-5,0,10,400),2)
+
+        #Displayed on transparent surface to hide rect from player
+        self.leftWindowScore_onPass_rect = pygame.draw.rect(transparent_surf,(0,0,0,0),(-5,0,10,400),2)
 
     def add_score(self):
         self.score_total += 1
