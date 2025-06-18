@@ -1,7 +1,7 @@
 import pygame
 import random as rand
 import sys
-
+import high_score
 
 pygame.init()
 player_fire = False
@@ -13,6 +13,8 @@ titleBG_surf = pygame.image.load("./Assets/StevesRailwayTitleScreen.png").conver
 endBG_surf = pygame.image.load("./Assets/StevesRailwayGOScreen.png").convert()
 background_surf = pygame.image.load("./Assets/pixle_landscape.png").convert()
 finalBackground_surf = pygame.transform.scale_by(background_surf, 1.25)
+
+high_score_value = high_score.load_high_score()
 
 
 def title_screen():
@@ -163,6 +165,7 @@ class Scoreboard():
         self.player_health_text = None
         self.player_health_bar_rect = None
         self.player_health = 100
+        self.leftWindowScore_onPass_rect = None
 
     def render(self):
         self.score_text = self.score_font.render("Total Score: " + str(self.score_total), True, (243,140,5))
@@ -176,21 +179,22 @@ class Scoreboard():
         self.player_health_text = self.score_font.render("Health:", True, (243,140,5))
         display_surf.blit(self.player_health_text, (10, 30))
         self.player_health_bar_rect = pygame.draw.rect(display_surf, (0,200,0),(80,35,self.player_health,15))
+        self.leftWindowScore_onPass_rect = pygame.draw.rect(display_surf,(255,0,0),(-5,0,10,400),2)
 
     def add_score(self):
         self.score_total += 1
-
-    def player_lose_health(self):
+        
+    def player_lose_health(self, life_loss):
         if self.player_health > 0:
-            self.player_health -= 25
+            self.player_health -= life_loss
             self.player_health_bar_rect = pygame.draw.rect(display_surf,(0,200,0),(80,35,self.player_health,15))
         else:
             global gameover 
             gameover = True
 
-    def enemy_lose_health(self):
+    def enemy_lose_health(self, life_loss):
         if self.enemy_health > 0:
-            self.enemy_health -= 5
+            self.enemy_health -= life_loss
             self.enemy_health_bar_rect = pygame.draw.rect(display_surf,(200,0,0),(535,15,self.enemy_health,15))
         else:
             self.enemy_alive = False
@@ -320,9 +324,9 @@ class BossLaser():
 
 class PowerUp():
     def __init__(self):
-        self.power_x = rand.randint(2000, 5000)
+        self.power_x = rand.randint(5000, 10000)
         self.power_y = rand.randint(10, 380)
-        self.power_vel = 2
+        self.power_vel = 50
         self.gas_can_surf = pygame.image.load('./Assets/medium_fuel_red.png')
         self.gas_can = pygame.transform.scale_by(self.gas_can_surf, .1)
         self.gas_rect = self.gas_can.get_rect(topleft = (self.power_x, self.power_y))
@@ -345,7 +349,6 @@ class PowerUp():
             self.active = True
             power_up_timer.activate()
             self.gas_can.fill((0,0,0,0))
-
 
 class Timer():
     def __init__(self, duration):
@@ -374,6 +377,8 @@ def end_screen():
     while(gameOver_running):
         display_surf.blit(titleBG_surf, (0, 0))
         text = gameOver_font.render("Press r to play again or q to quit", True, ('#0a1a58'))
+        best_score_text = gameOver_font.render(f"High Score: {high_score_value}", True, ('#0a1a58'))
+        display_surf.blit(best_score_text, (200, 300))
         display_surf.blit(text, (125, 250))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -392,8 +397,8 @@ def end_screen():
         pygame.display.update()
 
 def start_game():
-    global player, boss_alien, boss_fireball, fireball, score, power_up, power_up_timer,coin_timer,cow_timer, bossFireBall_timer
-    global coins, cows, bFireBall, keys, gameover, running
+    
+    global boss_alien,player,boss_fireball,fireball,score,power_up,power_up_timer,cows,coins,bFireBall,cow_timer,coin_timer,bossFireBall_timer
 
     player = Player()
     boss_alien = BossAlien()
@@ -425,7 +430,7 @@ running = True
 while (running):
     
     gameover = False
-    boss_total = 10
+    boss_total = 1000
     clock = pygame.time.Clock()
     delta_time = clock.tick(60) / 1000.0
     display_surf.blit(finalBackground_surf, (0,0))
@@ -483,6 +488,12 @@ while (running):
 
                 score.score_total += 5
                 cows.pop(i)
+                continue
+
+            if score.leftWindowScore_onPass_rect.colliderect(cows[i].baby_cow_rect):
+
+                score.player_lose_health(10)
+                cows.pop(i)
 
         if score.score_total >= boss_total and not score.boss_dead:
             score.enemy_alive = True
@@ -495,15 +506,18 @@ while (running):
             bFireBall[i].draw()
             bFireBall[i].shootFireball(delta_time)
             if player.player_rect.colliderect(bFireBall[i].alien_fireball_rect):
-                score.player_lose_health()
+                score.player_lose_health(25)
                 bFireBall.pop(i)
         
         for i in range(len(fireball.ammo_total) - 1, -1, -1):
             if fireball.fire_rect.colliderect(boss_alien.boss_alien_rect):
                 fireball.ammo_total.pop(i)
-                score.enemy_lose_health()
-
-        
+                score.enemy_lose_health(2)
+    
+    #Checks if current user score is all time high score
+    if score.score_total > high_score_value:
+        high_score_value = score.score_total
+        high_score.save_high_scores(high_score_value)
     
     if(gameover):
         display_surf.blit(endBG_surf,(0,0))
